@@ -1,19 +1,34 @@
 package com.habitlab.backend.controller;
 
+import com.habitlab.backend.dto.AuthLoginRequestDTO;
+import com.habitlab.backend.dto.AuthRegisterUserRequestDTO;
+import com.habitlab.backend.dto.AuthResponseDTO;
+import com.habitlab.backend.service.UserDetailService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@PreAuthorize("denyAll()")
+@PreAuthorize("permitAll()")
 public class AuthController {
 
-    @GetMapping("/login")
-    @PreAuthorize("hasAuthority('READ')")
-    public String login() {
-        return "login";
+    @Autowired
+    private UserDetailService userDetailService;
+
+    @PostMapping("/sign-in")
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthLoginRequestDTO request) {
+        return new ResponseEntity<>(this.userDetailService.login(request), HttpStatus.OK);
     }
+
+    @PostMapping("/sign-up")
+    public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRegisterUserRequestDTO request) {
+        return new ResponseEntity<>(this.userDetailService.register(request), HttpStatus.CREATED);
+    }
+
+
 
 }
