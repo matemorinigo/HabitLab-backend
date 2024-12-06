@@ -1,12 +1,12 @@
 package com.habitlab.backend.service;
 
-import com.habitlab.backend.dto.AuthLoginRequestDTO;
-import com.habitlab.backend.dto.AuthRegisterUserRequestDTO;
-import com.habitlab.backend.dto.AuthResponseDTO;
+import com.habitlab.backend.dto.*;
 import com.habitlab.backend.exception.UnauthorizedException;
+import com.habitlab.backend.persistance.entity.HabitEntity;
 import com.habitlab.backend.persistance.entity.RoleEntity;
 import com.habitlab.backend.persistance.entity.RoleEnum;
 import com.habitlab.backend.persistance.entity.UserEntity;
+import com.habitlab.backend.repository.HabitRepository;
 import com.habitlab.backend.repository.RoleRepository;
 import com.habitlab.backend.repository.UserRepository;
 import com.habitlab.backend.util.JwtUtils;
@@ -38,6 +38,13 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
     private UserRepository userRepository;
 
     @Autowired
+    private HabitRepository habitRepository;
+
+    /*fixme Change this s**t!!!!*/
+    @Autowired
+    private IHabitService habitService;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -48,7 +55,7 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findUserEntityByUsername(username)
+        UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
@@ -94,7 +101,7 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
         String password = request.getPassword();
         String email = request.getEmail();
 
-        UserEntity userExists = userRepository.findUserEntityByUsername(username)
+        UserEntity userExists = userRepository.findByUsername(username)
                 .orElse(null);
 
         if(userExists != null){
@@ -149,5 +156,26 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
         return new UsernamePasswordAuthenticationToken(username, userDetails.getPassword(), userDetails.getAuthorities());
     }
 
+    public UserProfileDTO getUserProfile(String username){
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        List<HabitDTO> habits = habitRepository.findAllByUser(user)
+                .stream()
+                .map(habitService::habitToDTO)
+                .toList();
+
+        HabitEntity habitWithMaxStreak = habitRepository.findTopByUserOrderByLastStreakDesc(user)
+                .orElse(null);
+
+        int habitsCount = habits.size();
+
+        return UserProfileDTO.builder()
+                .username(username)
+                .habits(habits)
+                .largestStreak(habitWithMaxStreak != null ? habitWithMaxStreak.getLastStreak() : 0)
+                .totalHabits(habitsCount)
+                .build();
+    }
 
 }

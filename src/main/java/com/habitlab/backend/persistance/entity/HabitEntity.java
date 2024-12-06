@@ -25,6 +25,7 @@ public class HabitEntity {
 
     @Column(name = "startDate", nullable = false)
     private Date startDate;
+
     @Column(name = "endDate")
     private Date endDate;
 

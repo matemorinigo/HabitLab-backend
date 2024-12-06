@@ -19,6 +19,14 @@ public class AuthController {
     @Autowired
     private UserDetailService userDetailService;
 
+    /*
+    * TODO 1: Validate the user input
+    *
+    * */
+
+
+
+
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthLoginRequestDTO request) {
         return new ResponseEntity<>(this.userDetailService.login(request), HttpStatus.OK);

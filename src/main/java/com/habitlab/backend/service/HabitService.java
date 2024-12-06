@@ -1,12 +1,17 @@
 package com.habitlab.backend.service;
 
+import com.habitlab.backend.dto.HabitCreateRequestDTO;
 import com.habitlab.backend.dto.HabitDTO;
 import com.habitlab.backend.exception.ResourceNotFoundException;
 import com.habitlab.backend.persistance.entity.HabitEntity;
+import com.habitlab.backend.persistance.entity.UserEntity;
 import com.habitlab.backend.repository.HabitRepository;
+import com.habitlab.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -15,6 +20,9 @@ public class HabitService implements IHabitService {
 
     @Autowired
     private HabitRepository habitRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public List<HabitEntity> getHabits() {
@@ -55,14 +63,20 @@ public class HabitService implements IHabitService {
     }
 
     @Override
-    public HabitEntity saveHabit(HabitDTO habit) {
+    public HabitDTO saveHabit(HabitCreateRequestDTO habit, String username) {
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(()-> new ResourceNotFoundException("User not found with username: " + username));
+
         HabitEntity newHabit = HabitEntity.builder()
                 .title(habit.getTitle())
                 .description(habit.getDescription())
-                .startDate(habit.getStartDate())
-                .endDate(habit.getEndDate())
+                .startDate(new Date())
+                .lastStreak(0)
+                .user(user)
                 .build();
-        return habitRepository.save(newHabit);
+
+        habitRepository.save(newHabit);
+
+        return habitToDTO(newHabit);
     }
 
     @Override
@@ -70,5 +84,15 @@ public class HabitService implements IHabitService {
         HabitEntity habit = habitRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Habit not found with id: " + id));
         habitRepository.delete(habit);
         return habit;
+    }
+
+    public HabitDTO habitToDTO(HabitEntity habit){
+        HabitDTO habitDTO = new HabitDTO();
+        habitDTO.setTitle(habit.getTitle());
+        habitDTO.setDescription(habit.getDescription());
+        habitDTO.setStartDate(habit.getStartDate());
+        habitDTO.setEndDate(habit.getEndDate());
+        habitDTO.setLastStreak(habit.getLastStreak());
+        return habitDTO;
     }
 }

@@ -1,5 +1,6 @@
 package com.habitlab.backend.service;
 
+import com.habitlab.backend.dto.HabitCreateRequestDTO;
 import com.habitlab.backend.dto.HabitDTO;
 import com.habitlab.backend.persistance.entity.HabitEntity;
 import jakarta.websocket.MessageHandler;
@@ -14,8 +15,9 @@ public interface IHabitService {
 
      HabitEntity updateHabit(String id, HabitDTO updatedHabit);
 
-     HabitEntity saveHabit(HabitDTO habit);
+     HabitDTO saveHabit(HabitCreateRequestDTO habit, String username);
 
      HabitEntity deleteHabit(String id);
 
+     HabitDTO habitToDTO(HabitEntity habitEntity);
 }

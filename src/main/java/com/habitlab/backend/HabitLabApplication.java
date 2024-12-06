@@ -19,37 +19,4 @@ public class HabitLabApplication {
 		SpringApplication.run(HabitLabApplication.class, args);
 	}
 
-	@Bean
-	CommandLineRunner init(PermissionRepository permissionRepository, RoleRepository roleRepository) {
-		return args -> {
-
-			permissionRepository.saveAll(List.of(
-					PermissionEntity.builder()
-							.name("CREATE")
-							.build(),
-					PermissionEntity.builder()
-							.name("READ")
-							.build(),
-					PermissionEntity.builder()
-							.name("UPDATE")
-							.build(),
-					PermissionEntity.builder()
-							.name("DELETE")
-							.build()
-			));
-
-			roleRepository.saveAll(List.of(
-					RoleEntity.builder()
-							.role(RoleEnum.ADMIN)
-							.build(),
-					RoleEntity.builder()
-							.role(RoleEnum.GUEST)
-							.build(),
-					RoleEntity.builder()
-							.role(RoleEnum.USER)
-							.build()
-			));
-		};
-
-	}
 }
