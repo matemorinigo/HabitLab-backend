@@ -11,6 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/*
+* TODO document this with swagger
+*
+* */
+
 @RestController
 @RequestMapping("/api/auth")
 @PreAuthorize("permitAll()")
@@ -23,9 +28,6 @@ public class AuthController {
     * TODO 1: Validate the user input
     *
     * */
-
-
-
 
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthLoginRequestDTO request) {

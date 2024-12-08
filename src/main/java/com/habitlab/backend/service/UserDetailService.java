@@ -141,7 +141,6 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
         return new AuthResponseDTO(username, accessToken);
     }
 
-
     private Authentication authenticate(String username, String password){
         UserDetails userDetails = this.loadUserByUsername(username);
 

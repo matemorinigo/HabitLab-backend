@@ -2,9 +2,7 @@ package com.habitlab.backend.persistance.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.beans.factory.annotation.Value;
 
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -21,17 +19,19 @@ public class OccurrenceEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /*
+    * TODO This could be redundant
+    * */
+
     @ManyToOne
-    @MapsId
     @JoinColumn(name = "habit_id")
     private HabitEntity habit;
 
     @ManyToOne
-    @MapsId
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @Column(name = "date", nullable = false)
-    private LocalDate date;
+    private Date date;
 
 }

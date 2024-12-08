@@ -3,16 +3,21 @@ package com.habitlab.backend.service;
 import com.habitlab.backend.dto.HabitCreateRequestDTO;
 import com.habitlab.backend.dto.HabitDTO;
 import com.habitlab.backend.exception.ResourceNotFoundException;
+
 import com.habitlab.backend.persistance.entity.HabitEntity;
 import com.habitlab.backend.persistance.entity.UserEntity;
 import com.habitlab.backend.repository.HabitRepository;
 import com.habitlab.backend.repository.UserRepository;
+import com.habitlab.backend.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
+
 
 
 @Service
@@ -24,28 +29,51 @@ public class HabitService implements IHabitService {
     @Autowired
     private UserRepository userRepository;
 
-    @Override
-    public List<HabitEntity> getHabits() {
-        List<HabitEntity> habits = habitRepository.findAll();
+    @Autowired
+    private ValidationUtils validationUtils;
 
-        return habits;
+    @Override
+    public List<HabitDTO> getHabits(String username) {
+
+        return habitRepository.findAll()
+                .stream()
+                .filter(habitE -> habitE.getUser().getUsername().equals(username))
+                .map(this::habitToDTO)
+                .toList();
     }
 
     @Override
-    public HabitEntity getHabit(String id) {
-        HabitEntity habit = habitRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Habit not found with id: " + id));
-        return habit;
+    public HabitDTO getHabit(String id, String username) {
+
+        return habitToDTO(validationUtils.validateHabitOwner(id, username));
     }
 
     @Override
-    public HabitEntity getHabitByTitle(String title) {
-        HabitEntity habit = habitRepository.findByTitle(title).orElseThrow(()-> new ResourceNotFoundException("Habit not found with title: " + title));
-        return habit;
+    public List<HabitDTO> getHabitsByTitle(String title, String username) {
+
+        return habitRepository.findByTitleContainingIgnoreCase(title)
+                .stream()
+                .filter(habitE -> habitE.getUser().getUsername().equals(username))
+                .map(this::habitToDTO)
+                .toList();
     }
 
     @Override
-    public HabitEntity updateHabit(String id, HabitDTO updatedHabit) {
-        HabitEntity habit = habitRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Habit not found with id: " + id));
+    public List<HabitDTO> getHabitsByStartDateBetween(LocalDate afterLocalDate, LocalDate beforeLocalDate, String username) {
+        Date afterDate = Date.from(afterLocalDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date beforeDate = Date.from(beforeLocalDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        return habitRepository.findByStartDateBetween(afterDate, beforeDate)
+                .stream()
+                .filter(habit -> habit.getUser().getUsername().equals(username))
+                .map(this::habitToDTO)
+                .toList();
+    }
+
+    @Override
+    public HabitDTO updateHabit(String id, HabitDTO updatedHabit, String username) {
+        HabitEntity habit = validationUtils.validateHabitOwner(id, username);
+
         if(updatedHabit.getTitle() != null) {
             habit.setTitle(updatedHabit.getTitle());
         }
@@ -59,7 +87,7 @@ public class HabitService implements IHabitService {
             habit.setEndDate(updatedHabit.getEndDate());
         }
 
-        return habitRepository.save(habit);
+        return habitToDTO(habitRepository.save(habit));
     }
 
     @Override
@@ -80,14 +108,28 @@ public class HabitService implements IHabitService {
     }
 
     @Override
-    public HabitEntity deleteHabit(String id) {
-        HabitEntity habit = habitRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Habit not found with id: " + id));
+    public HabitDTO deleteHabit(String id, String username) {
+        HabitEntity habit = validationUtils.validateHabitOwner(id, username);
         habitRepository.delete(habit);
-        return habit;
+        return habitToDTO(habit);
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void resetStreaks(){
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        List<HabitEntity> habitsToReset = habitRepository.findHabitsWithoutOccurrenceForDate(yesterday);
+
+        for (HabitEntity habit : habitsToReset) {
+            habit.setLastStreak(0);
+        }
+
+        habitRepository.saveAll(habitsToReset);
     }
 
     public HabitDTO habitToDTO(HabitEntity habit){
         HabitDTO habitDTO = new HabitDTO();
+        habitDTO.setId(habit.getId());
         habitDTO.setTitle(habit.getTitle());
         habitDTO.setDescription(habit.getDescription());
         habitDTO.setStartDate(habit.getStartDate());
@@ -95,4 +137,6 @@ public class HabitService implements IHabitService {
         habitDTO.setLastStreak(habit.getLastStreak());
         return habitDTO;
     }
+
+
 }
