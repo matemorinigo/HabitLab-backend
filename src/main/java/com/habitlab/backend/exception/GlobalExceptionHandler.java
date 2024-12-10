@@ -9,10 +9,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/*
-* TODO Remove trace from standard exceptions
-* */
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

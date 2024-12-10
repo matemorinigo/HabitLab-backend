@@ -2,6 +2,7 @@ package com.habitlab.backend.service;
 
 import com.habitlab.backend.dto.HabitCreateRequestDTO;
 import com.habitlab.backend.dto.HabitDTO;
+import com.habitlab.backend.dto.PaginatedHabitsResponseDTO;
 import com.habitlab.backend.exception.ResourceNotFoundException;
 
 import com.habitlab.backend.persistance.entity.HabitEntity;
@@ -10,6 +11,9 @@ import com.habitlab.backend.repository.HabitRepository;
 import com.habitlab.backend.repository.UserRepository;
 import com.habitlab.backend.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,13 +37,29 @@ public class HabitService implements IHabitService {
     private ValidationUtils validationUtils;
 
     @Override
-    public List<HabitDTO> getHabits(String username) {
+    public PaginatedHabitsResponseDTO getHabits(String username, LocalDate startDate, int size) {
 
-        return habitRepository.findAll()
+        Pageable pageable = PageRequest.of(0, size);
+        List<HabitEntity> habits;
+
+        UserEntity user = userRepository.findByUsername(username).orElseThrow();
+
+        if(startDate == null){
+            habits = habitRepository.findAllByUser(user.getId(), pageable);
+        } else {
+            Date date = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+            habits = habitRepository.findByUserAndCursor(user.getId(), date, pageable);
+
+        }
+
+
+        LocalDate nextStartDate = habits.isEmpty() ? null : habits.getLast().getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        return new PaginatedHabitsResponseDTO(habits
                 .stream()
-                .filter(habitE -> habitE.getUser().getUsername().equals(username))
                 .map(this::habitToDTO)
-                .toList();
+                .toList(), nextStartDate);
     }
 
     @Override
@@ -51,9 +71,10 @@ public class HabitService implements IHabitService {
     @Override
     public List<HabitDTO> getHabitsByTitle(String title, String username) {
 
-        return habitRepository.findByTitleContainingIgnoreCase(title)
+        UserEntity user = userRepository.findByUsername(username).orElseThrow();
+
+        return habitRepository.findByTitleContainingIgnoreCaseAndUser(title, user)
                 .stream()
-                .filter(habitE -> habitE.getUser().getUsername().equals(username))
                 .map(this::habitToDTO)
                 .toList();
     }
@@ -63,9 +84,10 @@ public class HabitService implements IHabitService {
         Date afterDate = Date.from(afterLocalDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
         Date beforeDate = Date.from(beforeLocalDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
 
-        return habitRepository.findByStartDateBetween(afterDate, beforeDate)
+        UserEntity user = userRepository.findByUsername(username).orElseThrow();
+
+        return habitRepository.findByStartDateBetweenAndUser(afterDate, beforeDate, user)
                 .stream()
-                .filter(habit -> habit.getUser().getUsername().equals(username))
                 .map(this::habitToDTO)
                 .toList();
     }

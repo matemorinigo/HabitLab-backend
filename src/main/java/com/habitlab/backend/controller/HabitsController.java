@@ -1,8 +1,10 @@
 package com.habitlab.backend.controller;
 import com.habitlab.backend.dto.HabitCreateRequestDTO;
 import com.habitlab.backend.dto.HabitDTO;
+import com.habitlab.backend.dto.PaginatedHabitsResponseDTO;
 import com.habitlab.backend.service.IHabitService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -27,8 +30,11 @@ public class HabitsController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<HabitDTO>> getHabits() {
-        return ResponseEntity.ok(habitService.getHabits(getUsername()));
+    public ResponseEntity<PaginatedHabitsResponseDTO> getHabits(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(habitService.getHabits(getUsername(), startDate, size));
     }
 
     @PutMapping("/{id}")
