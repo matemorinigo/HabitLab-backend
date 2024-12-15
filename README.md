@@ -1,7 +1,7 @@
 # HabitLab-backend
 HabitLab is an habit tracker application where you can start with your new habits!
 
-This is a REST API developed in Java using Spring framework, based on the 3-layer pattern (controller, service, repository) and implementing practices such as the use of DTOs, centralized exception handling and secure configurations with Spring Security.
+A REST API developed in Java using Spring framework, based on the 3-layer pattern (controller, service, repository) and implementing practices such as the use of DTOs, centralized exception handling and secure configurations with Spring Security.
 
 _****Key Features****_
 - Security with Spring Security
