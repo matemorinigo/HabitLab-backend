@@ -68,8 +68,8 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
                         new SimpleGrantedAuthority("ROLE_".concat(role.getRole().name()))
                 ));
 
-        user.getRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
+        user.getRoles().parallelStream()
+                .flatMap(role -> role.getPermissions().parallelStream())
                 .forEach(permissionEntity -> authorities.add(
                         new SimpleGrantedAuthority(permissionEntity.getName())
                 ));
@@ -127,8 +127,8 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
 
         userCreated.getRoles().forEach(userRole -> authorityList.add(new SimpleGrantedAuthority("ROLE_".concat(userRole.getRole().name()))));
 
-        userCreated.getRoles().stream()
-                .flatMap(userRole -> userRole.getPermissions().stream())
+        userCreated.getRoles().parallelStream()
+                .flatMap(userRole -> userRole.getPermissions().parallelStream())
                 .forEach(permissionEntity -> authorityList.add(new SimpleGrantedAuthority(permissionEntity.getName())));
 
         SecurityContext context = SecurityContextHolder.getContext();
@@ -160,7 +160,7 @@ public class UserDetailService implements UserDetailsService, IUserDetailService
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         List<HabitDTO> habits = habitRepository.findAllByUser(user)
-                .stream()
+                .parallelStream()
                 .map(habitService::habitToDTO)
                 .toList();
 

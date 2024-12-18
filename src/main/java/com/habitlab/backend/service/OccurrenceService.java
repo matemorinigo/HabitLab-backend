@@ -6,6 +6,7 @@ import com.habitlab.backend.persistance.entity.HabitEntity;
 import com.habitlab.backend.persistance.entity.OccurrenceEntity;
 import com.habitlab.backend.persistance.entity.UserEntity;
 
+import com.habitlab.backend.repository.HabitRepository;
 import com.habitlab.backend.repository.OccurrenceRepository;
 import com.habitlab.backend.repository.UserRepository;
 import com.habitlab.backend.util.ValidationUtils;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -29,13 +31,15 @@ public class OccurrenceService implements IOcurrenceService {
 
     @Autowired
     private ValidationUtils validationUtils;
+    @Autowired
+    private HabitRepository habitRepository;
 
     public List<OccurrenceViewDTO> getOccurrencesByHabitId(String habitId, String username) {
 
         HabitEntity habit = validationUtils.validateHabitOwner(habitId, username);
 
         return occurrenceRepository.findAllByHabit(habit)
-                .stream()
+                .parallelStream()
                 .map(occurrence -> occurrenceToDTO(occurrence, habit, username))
                 .toList();
     }
@@ -44,10 +48,18 @@ public class OccurrenceService implements IOcurrenceService {
         HabitEntity habit = validationUtils.validateHabitOwner(habitId, username);
         UserEntity user = userRepository.findByUsername(username).orElseThrow();
         OccurrenceEntity occurrence = new OccurrenceEntity();
+        Optional<OccurrenceEntity> yesterdayOccurrance = occurrenceRepository.findOccurrenceEntityByDate(Date.from(LocalDate.now().minusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()));
         occurrence.setHabit(habit);
         occurrence.setDate(new Date());
         occurrence.setUser(user);
         occurrenceRepository.save(occurrence);
+
+        if(yesterdayOccurrance.isPresent())
+            habit.setLastStreak(habit.getLastStreak() + 1);
+        else
+            habit.setLastStreak(1);
+
+        habitRepository.save(habit);
 
         return occurrenceToDTO(occurrence, habit, username);
     }
@@ -59,7 +71,7 @@ public class OccurrenceService implements IOcurrenceService {
         Date end = Date.from(endDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
 
         return occurrenceRepository.findAllByHabitAndDateBetween(habit, start, end)
-                .stream()
+                .parallelStream()
                 .map(occurrence -> occurrenceToDTO(occurrence, habit, username))
                 .toList();
     }

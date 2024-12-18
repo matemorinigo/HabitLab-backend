@@ -12,8 +12,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "occurrences",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"habit_id", "user_id", "date"}))
+@Table(name = "occurrences")
 public class OccurrenceEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

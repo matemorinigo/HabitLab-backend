@@ -30,7 +30,7 @@ public class JwtUtils {
         String username = authentication.getPrincipal().toString();
 
         String authorities = authentication.getAuthorities()
-                .stream()
+                .parallelStream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 

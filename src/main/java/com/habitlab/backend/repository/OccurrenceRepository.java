@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /*
@@ -19,4 +20,5 @@ import java.util.UUID;
 public interface OccurrenceRepository extends JpaRepository<OccurrenceEntity, UUID> {
     List<OccurrenceEntity> findAllByHabit(HabitEntity habit);
     List<OccurrenceEntity> findAllByHabitAndDateBetween(HabitEntity habit, Date startDate, Date endDate);
+    Optional<OccurrenceEntity> findOccurrenceEntityByDate(Date date);
 }

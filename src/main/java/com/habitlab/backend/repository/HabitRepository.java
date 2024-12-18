@@ -15,15 +15,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface HabitRepository extends JpaRepository<HabitEntity, String> {
+public interface HabitRepository extends JpaRepository<HabitEntity, UUID> {
     Optional<HabitEntity> findById(UUID id);
 
     List<HabitEntity> findAllByUser(UserEntity user);
 
     @Query("""
-        SELECT h 
-        FROM HabitEntity h 
-        WHERE h.user.id = :userId
+        SELECT h FROM HabitEntity h WHERE h.user.id = :userId
         ORDER BY h.startDate DESC
     """)
     List<HabitEntity> findAllByUser(@Param("userId") UUID userId, Pageable pageable);

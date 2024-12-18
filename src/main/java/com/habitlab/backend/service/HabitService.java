@@ -1,28 +1,26 @@
 package com.habitlab.backend.service;
 
-import com.habitlab.backend.dto.HabitCreateRequestDTO;
-import com.habitlab.backend.dto.HabitDTO;
-import com.habitlab.backend.dto.PaginatedHabitsResponseDTO;
+import com.habitlab.backend.dto.*;
 import com.habitlab.backend.exception.ResourceNotFoundException;
-
 import com.habitlab.backend.persistance.entity.HabitEntity;
+import com.habitlab.backend.persistance.entity.NoteEntity;
+import com.habitlab.backend.persistance.entity.OccurrenceEntity;
 import com.habitlab.backend.persistance.entity.UserEntity;
 import com.habitlab.backend.repository.HabitRepository;
+import com.habitlab.backend.repository.NoteRepository;
+import com.habitlab.backend.repository.OccurrenceRepository;
 import com.habitlab.backend.repository.UserRepository;
 import com.habitlab.backend.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
-
-
+import java.util.UUID;
 
 @Service
 public class HabitService implements IHabitService {
@@ -34,6 +32,12 @@ public class HabitService implements IHabitService {
     private UserRepository userRepository;
 
     @Autowired
+    private NoteRepository noteRepository;
+
+    @Autowired
+    private OccurrenceRepository occurrenceRepository;
+
+    @Autowired
     private ValidationUtils validationUtils;
 
     @Override
@@ -42,22 +46,20 @@ public class HabitService implements IHabitService {
         Pageable pageable = PageRequest.of(0, size);
         List<HabitEntity> habits;
 
-        UserEntity user = userRepository.findByUsername(username).orElseThrow();
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if(startDate == null){
             habits = habitRepository.findAllByUser(user.getId(), pageable);
         } else {
             Date date = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-
             habits = habitRepository.findByUserAndCursor(user.getId(), date, pageable);
-
         }
 
 
         LocalDate nextStartDate = habits.isEmpty() ? null : habits.getLast().getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
         return new PaginatedHabitsResponseDTO(habits
-                .stream()
+                .parallelStream()
                 .map(this::habitToDTO)
                 .toList(), nextStartDate);
     }
@@ -74,7 +76,7 @@ public class HabitService implements IHabitService {
         UserEntity user = userRepository.findByUsername(username).orElseThrow();
 
         return habitRepository.findByTitleContainingIgnoreCaseAndUser(title, user)
-                .stream()
+                .parallelStream()
                 .map(this::habitToDTO)
                 .toList();
     }
@@ -87,7 +89,15 @@ public class HabitService implements IHabitService {
         UserEntity user = userRepository.findByUsername(username).orElseThrow();
 
         return habitRepository.findByStartDateBetweenAndUser(afterDate, beforeDate, user)
-                .stream()
+                .parallelStream()
+                .map(this::habitToDTO)
+                .toList();
+    }
+
+    public List<HabitDTO> getAllHabits(String username){
+        UserEntity user = userRepository.findByUsername(username).orElseThrow();
+        return habitRepository.findAllByUser(user)
+                .parallelStream()
                 .map(this::habitToDTO)
                 .toList();
     }
@@ -136,6 +146,37 @@ public class HabitService implements IHabitService {
         return habitToDTO(habit);
     }
 
+    @Override
+    public List<NoteDTO> getHabitNotes(String habitId, String username){
+        HabitEntity habit = validationUtils.validateHabitOwner(habitId, username);
+        return noteRepository.findAllByHabit(habit)
+                .parallelStream()
+                .map((this::noteToDTO))
+                .toList();
+    }
+
+    @Override
+    public NoteDTO createNote(String habitId, String username, NoteBodyDTO noteBody, String occurranceId){
+        HabitEntity habit = validationUtils.validateHabitOwner(habitId, username);
+        OccurrenceEntity occurrence = null;
+        if(occurranceId != null)
+            occurrence = occurrenceRepository.findById(UUID.fromString(occurranceId)).orElseThrow(() -> new ResourceNotFoundException("Occurrence not found with id: " + occurranceId));
+
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        NoteEntity note = NoteEntity.builder()
+                        .habit(habit)
+                        .user(user)
+                        .occurrence(occurrence)
+                        .createdAt(new Date())
+                        .content(noteBody.getContent())
+                        .build();
+
+        noteRepository.save(note);
+
+        return noteToDTO(note);
+    }
+
     @Scheduled(cron = "0 0 0 * * ?")
     public void resetStreaks(){
         LocalDate today = LocalDate.now();
@@ -160,5 +201,15 @@ public class HabitService implements IHabitService {
         return habitDTO;
     }
 
+    private NoteDTO noteToDTO(NoteEntity note){
 
+        NoteDTO noteDTO = new NoteDTO();
+        noteDTO.setId(note.getId());
+        noteDTO.setHabitTitle(note.getHabit().getTitle());
+        noteDTO.setUsername(note.getUser().getUsername());
+        noteDTO.setOccurrenceId(note.getOccurrence() != null ? note.getOccurrence().getDate() : null);
+        noteDTO.setContent(note.getContent());
+        noteDTO.setCreatedAt(note.getCreatedAt());
+        return noteDTO;
+    }
 }

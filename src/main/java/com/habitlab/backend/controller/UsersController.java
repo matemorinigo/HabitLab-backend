@@ -19,6 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
 public class UsersController {
 
+    /*
+    * TODO implement endpoints for ADMIN users
+    *
+    * eg: GET /users
+    *
+    * On auth maybe a method to create/update user roles? -> Watch again JWT auth video
+    *
+    *
+    * */
+
     @Autowired
     private UserDetailService userDetailService;
 

@@ -1,19 +1,14 @@
 package com.habitlab.backend.controller;
-import com.habitlab.backend.dto.HabitCreateRequestDTO;
-import com.habitlab.backend.dto.HabitDTO;
-import com.habitlab.backend.dto.PaginatedHabitsResponseDTO;
+import com.habitlab.backend.dto.*;
 import com.habitlab.backend.service.IHabitService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -30,10 +25,8 @@ public class HabitsController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<PaginatedHabitsResponseDTO> getHabits(
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+    public ResponseEntity<PaginatedHabitsResponseDTO> getHabits(@RequestParam(required = false) LocalDate startDate,
+                                                                    @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(habitService.getHabits(getUsername(), startDate, size));
     }
 
@@ -75,6 +68,18 @@ public class HabitsController {
         } else {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @GetMapping("/{id}/notes")
+    public ResponseEntity<List<NoteDTO>> getHabitNotes(@PathVariable String id) {
+        return ResponseEntity.ok(habitService.getHabitNotes(id, getUsername()));
+    }
+
+    @PostMapping("/{id}/notes")
+    public ResponseEntity<NoteDTO> createNote(@PathVariable String id,
+                                                    @RequestBody NoteBodyDTO note,
+                                                    @RequestParam(required = false) String occurranceId ) {
+        return ResponseEntity.ok(habitService.createNote(id, getUsername(), note, occurranceId));
     }
 
 
